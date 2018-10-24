@@ -1,5 +1,6 @@
 package com.lhhclazz.sell.service.impl;
 
+import com.lhhclazz.sell.converter.OrderMaster2OrderDTOConverter;
 import com.lhhclazz.sell.dataobject.OrderDetail;
 import com.lhhclazz.sell.dataobject.OrderMaster;
 import com.lhhclazz.sell.dataobject.ProductInfo;
@@ -15,14 +16,18 @@ import com.lhhclazz.sell.repository.ProductInfoRepository;
 import com.lhhclazz.sell.service.OrderService;
 import com.lhhclazz.sell.service.ProductService;
 import com.lhhclazz.sell.utils.KeyUtil;
+import lombok.extern.log4j.Log4j;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.CollectionUtils;
 
 import java.math.BigDecimal;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -61,8 +66,8 @@ public class OrderServiceImpl implements OrderService {
         }
 
         OrderMaster orderMaster = new OrderMaster();
+        orderDTO.setOrderId(orderId);
         BeanUtils.copyProperties(orderDTO,orderMaster);
-        orderMaster.setOrderId(orderId);
         orderMaster.setOrderAmount(bigDecimal);
         orderMaster.setOrderStatus(OrderStatusEnum.NEW.getCode());
         orderMaster.setPayStatus(PayStatusEnum.WAIT.getCode());
@@ -95,23 +100,62 @@ public class OrderServiceImpl implements OrderService {
     @Override
     public Page<OrderDTO> findList(String buyerOpenid, Pageable pageable) {
         Page<OrderMaster> orderMasters = orderMasterRepository.findByBuyerOpenid(buyerOpenid, pageable);
-
-        return null;
+        List<OrderDTO> convert = OrderMaster2OrderDTOConverter.convert(orderMasters.getContent());
+        return new PageImpl<OrderDTO>(convert,pageable,orderMasters.getTotalElements());
     }
 
     @Override
+    @Transactional
     public OrderDTO cancel(OrderDTO orderDTO) {
-        return null;
+
+        OrderMaster orderMaster = new OrderMaster();
+
+        //修改状态
+        if(!orderDTO.getOrderStatus().equals(OrderStatusEnum.NEW.getCode())){
+            throw new SellException(ResultEnum.ORDER_NOT_EXIST);
+        }
+        BeanUtils.copyProperties(orderDTO,orderMaster);
+        orderMaster.setOrderStatus(OrderStatusEnum.CANCEL.getCode());
+        OrderMaster orderMasterUpdata = orderMasterRepository.save(orderMaster);
+        if(orderMasterUpdata == null){
+            throw new SellException(ResultEnum.ORDER_UPDATE_FAIL);
+        }
+        //添加库存
+        if(CollectionUtils.isEmpty(orderDTO.getOrderDetailList())){
+            throw new SellException(ResultEnum.ORDER_DETAIL_EMPTY);
+        }
+        List<CartDTO> cartDTOS = orderDTO.getOrderDetailList().stream().map(e -> new CartDTO(e.getProductQuantity(), e.getProductId())).collect(Collectors.toList());
+        productService.increaseStock(cartDTOS);
+
+        //如果以支付就退款
+        if(orderDTO.getPayStatus().equals(PayStatusEnum.SUCCESS)){
+            //TODO
+        }
+        return orderDTO;
     }
 
     @Override
     public OrderDTO finish(OrderDTO orderDTO) {
-        return null;
+        if(!orderDTO.getOrderStatus().equals(OrderStatusEnum.NEW.getCode())){
+            throw new SellException(ResultEnum.ORDER_STATUS_ERROR);
+        }
+        OrderMaster orderMaster = new OrderMaster();
+        BeanUtils.copyProperties(orderDTO,orderMaster);
+        orderMaster.setOrderStatus(OrderStatusEnum.FINISHED.getCode());
+        OrderMaster master = orderMasterRepository.save(orderMaster);
+        return orderDTO;
     }
 
     @Override
     public OrderDTO paid(OrderDTO orderDTO) {
-        return null;
+        if(!orderDTO.getPayStatus().equals(PayStatusEnum.WAIT.getCode())){
+            throw new SellException(ResultEnum.ORDER_PAY_STATUS_ERROR);
+        }
+        OrderMaster orderMaster = new OrderMaster();
+        BeanUtils.copyProperties(orderDTO,orderMaster);
+        orderMaster.setPayStatus(PayStatusEnum.SUCCESS.getCode());
+        orderMasterRepository.save(orderMaster);
+        return orderDTO;
     }
 
     @Override

@@ -1,8 +1,10 @@
 package com.lhhclazz.sell.dto;
 
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.lhhclazz.sell.dataobject.OrderDetail;
 import com.lhhclazz.sell.enums.OrderStatusEnum;
 import com.lhhclazz.sell.enums.PayStatusEnum;
+import com.lhhclazz.sell.utils.serializer.Date2LongSerializer;
 import lombok.Data;
 
 import javax.persistence.Id;
@@ -41,9 +43,11 @@ public class OrderDTO {
     private Integer payStatus;
 
     /** 订单创建时间 */
+    @JsonSerialize(using = Date2LongSerializer.class)
     private Date createTime;
 
     /** 订单的更新时间 */
+    @JsonSerialize(using = Date2LongSerializer.class)
     private Date updateTime;
 
     /** 一个订单对应的多条商品 */

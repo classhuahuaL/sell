@@ -14,5 +14,5 @@ public interface OrderMasterRepository extends JpaRepository<OrderMaster,String>
     OrderMaster findByOrderId(String orderId);
 
     /** 根据买家微信号和分页信息返回分页对象 */
-    Page<OrderMaster> findByBuyerOpenid(String buyerOpenId, Pageable pageable);
+    Page<OrderMaster> findByBuyerOpenid(String buyerOpenid, Pageable pageable);
 }

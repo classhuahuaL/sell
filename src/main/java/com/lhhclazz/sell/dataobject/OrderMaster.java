@@ -36,7 +36,7 @@ public class OrderMaster {
     /** 订单总金额 */
     private BigDecimal orderAmount;
 
-    /** 订单状态 0新下单 1完结订单 */
+    /** 订单状态 0新下单 1完结订单 2取消订单*/
     private Integer orderStatus = OrderStatusEnum.NEW.getCode();
 
     /** 订单的支付状态 0未支付 1已支付 */
