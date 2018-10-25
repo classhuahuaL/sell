@@ -8,6 +8,7 @@ import com.lhhclazz.sell.dto.OrderDTO;
 import com.lhhclazz.sell.enums.ResultEnum;
 import com.lhhclazz.sell.exception.SellException;
 import com.lhhclazz.sell.form.OrderForm;
+import com.lhhclazz.sell.service.BuyerService;
 import com.lhhclazz.sell.service.OrderService;
 import com.lhhclazz.sell.utils.ResultVOUtil;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -31,6 +32,9 @@ public class BuyerOrderController {
 
     @Autowired
     private OrderService orderService;
+
+    @Autowired
+    private BuyerService buyerService;
 
     /**
      * 创建订单
@@ -86,16 +90,31 @@ public class BuyerOrderController {
         if(StringUtils.isEmpty(openid)){
             throw new SellException(ResultEnum.PARAM_ERROR);
         }
-        OrderDTO dto = orderService.findOne(orderId);
+        OrderDTO dto = buyerService.findOne(openid,orderId);
+        if(dto == null ){
+            throw new SellException(ResultEnum.ORDERDETAIL_NOT_EXIST);
+        }
         return ResultVOUtil.success(dto);
     }
+
+    /**
+     * 取消订单
+     * @param openid
+     * @param orderId
+     * @return
+     */
+    @GetMapping("cancel")
     public ResultVO<OrderDTO> cancel(@RequestParam("openid") String openid,@RequestParam("orderId") String orderId){
         if(StringUtils.isEmpty(openid)){
             throw new SellException(ResultEnum.PARAM_ERROR);
         }
-        OrderDTO orderDTO = orderService.findOne(orderId);
-        OrderDTO cancel = orderService.cancel(orderDTO);
-        return ResultVOUtil.success(cancel);
+//        OrderDTO orderDTO = orderService.findOne(orderId);
+//        OrderDTO cancel = orderService.cancel(orderDTO);
+        OrderDTO dto = buyerService.cancel(openid, orderId);
+        if(dto == null){
+            throw new SellException(ResultEnum.ORDER_NOT_EXIST);
+        }
+        return ResultVOUtil.success(dto);
     }
 
 
